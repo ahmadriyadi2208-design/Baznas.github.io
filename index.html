@@ -1,23 +1,245 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seminar 100th TBS Kudus</title>
-    <style>
-        body {
-            margin: 0;
-        }
-        iframe {
-            display: block;
-            width: 100%; /* Mengisi seluruh lebar viewport */
-            height: 100vh;
-            border: none;
-            background: lightyellow;
-        }
-    </style>
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    :root { --primary: #006432; --accent: #FFD700; }
+    body { background: #f4f6f9; font-family: 'Inter', sans-serif; font-size: 13px; }
+    #login-page { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--primary); }
+    .navbar { background: #004d26; border-bottom: 4px solid var(--accent); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .card-custom { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: none; }
+    .sholat-card { background: white; border-radius: 10px; padding: 8px; flex: 1; text-align: center; border-bottom: 4px solid var(--primary); font-size: 11px; }
+    .form-label { font-weight: 700; font-size: 0.7rem; color: #444; text-transform: uppercase; }
+    #loading { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:9999; justify-content:center; align-items:center; flex-direction: column; }
+    .badge-satuan { background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; }
+  </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbxiSWBOGrozfqvvcpzq-Cxmw0QGFW8Ycxy4ek4Gu_tlqKn5EPLZvlm9N5DmEiONjOKbPA/exec" allow="camera"></iframe>
+
+<div id="loading"><div class="spinner-border text-success mb-2"></div><b>MEMPROSES DATA...</b></div>
+
+<div class="modal fade" id="modalOBS" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: none;">
+      <div class="modal-body text-center p-4">
+            <h5 class="fw-bold text-success">FORMULIR OBS ZAKAT</h5>
+        <p class="text-muted small">Silakan unduh formulir OBS Zakat terbaru sebelum melanjutkan pengisian data.</p>
+        <hr>
+        <a href="https://drive.google.com/file/d/1r01_qIDB5tCRGf97R-gTJEFjFPEyLmN1/view?usp=drive_link" class="btn btn-success w-100 fw-bold mb-2 py-2" target="_blank">DOWNLOAD FORMULIR OBS</a>
+        <button type="button" class="btn btn-light w-100 fw-bold text-secondary" data-bs-dismiss="modal">Masuk ke Dashboard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="login-page">
+  <div class="card p-4 text-center shadow-lg" style="width: 360px; border-radius: 25px;">
+    <h5 class="fw-bold text-success mb-0">BAZNAS PROV SUMSEL</h5>
+    <p class="text-secondary small fw-bold mb-4">Sistem Informasi Zakat</p>
+    <form id="loginForm">
+      <input type="text" id="user" class="form-control mb-2" placeholder="Username" required>
+      <input type="password" id="pass" class="form-control mb-4" placeholder="Password" required>
+      <button type="submit" class="btn btn-success w-100 fw-bold py-2">LOG IN</button>
+    </form>
+  </div>
+</div>
+
+<div id="dashboard-page" style="display:none;">
+  <nav class="navbar px-4 py-2 sticky-top d-flex justify-content-between align-items-center">
+    <span class="fw-bold d-flex align-items-center">
+      SISTEM PENDATAAN ZAKAT SE SUMSEL
+    </span>
+    <button onclick="location.reload()" class="btn btn-sm btn-warning fw-bold">LOGOUT</button>
+  </nav>
+
+  <div class="container-fluid py-4 px-4">
+    <div id="sholatArea" class="d-flex gap-2 mb-4"></div>
+
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="card-custom">
+          <h6 class="fw-bold text-success border-bottom pb-2 mb-3">INPUT DATA PELAPORAN</h6>
+          <form id="zakatForm">
+            <div class="mb-2"><label class="form-label">Tgl Pelaporan</label><input type="date" id="tglInput" class="form-control form-control-sm" required></div>
+            <div class="mb-2"><label class="form-label">Kabupaten / Kota</label><select id="wilayah" class="form-select form-select-sm" onchange="loadKec(this.value)" required><option value="">Pilih...</option></select></div>
+            <div class="row g-2 mb-2">
+              <div class="col-6"><label class="form-label">Kecamatan</label><select id="kecamatan" class="form-select form-select-sm" onchange="loadKel(this.value)" disabled required></select></div>
+              <div class="col-6"><label class="form-label">Kelurahan</label><select id="kelurahan" class="form-select form-select-sm" disabled required></select></div>
+            </div>
+            <div class="mb-2"><label class="form-label">Nama UPZ/Lembaga</label><input type="text" id="lembaga" class="form-control form-control-sm" required></div>
+            <div class="mb-2">
+                <label class="form-label">Jenis Dana</label>
+                <select id="jenis" class="form-select form-select-sm" onchange="updateSatuan(this.value)">
+                  <option value="Zakat Fitrah (Uang)">Zakat Fitrah (Uang)</option>
+                  <option value="Zakat Fitrah (Beras)">Zakat Fitrah (Beras)</option>
+                  <option value="Fidyah">Fidyah</option>
+                  <option value="Kafarat">Kafarat</option>
+                </select>
+            </div>
+            <div class="mb-2"><label class="form-label" id="labelJumlah">Nominal (Rp)</label><input type="number" id="jumlah" class="form-control form-control-sm" required step="any"></div>
+            
+            <div class="mb-3 border p-2 rounded bg-light">
+              <label class="form-label text-primary d-block">Langkah Bukti Transaksi:</label>
+              <a href="https://drive.google.com/drive/folders/1u5BgpXlTivBYQXEPPtAV0hc1oo_D5-MT?usp=drive_link" target="_blank" class="btn btn-primary btn-sm w-100 mb-2 fw-bold">1. KLIK UNTUK UPLOAD KE DRIVE</a>
+              <input type="url" id="linkDrive" class="form-control form-control-sm" placeholder="2. Tempel Link Bukti Disini..." required>
+            </div>
+            
+            <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm">SIMPAN & VALIDASI</button>
+          </form>
+        </div>
+        <div class="card-custom text-center"><canvas id="chartPie" style="max-height: 200px;"></canvas></div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="card-custom">
+          <h6 class="fw-bold text-center mb-3 text-uppercase">Akumulasi Penghimpunan per Kabupaten</h6>
+          <canvas id="chartBar" style="max-height: 350px;"></canvas>
+        </div>
+        <div class="card-custom">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle" style="font-size: 11px;">
+              <thead class="table-dark">
+                <tr><th>Tgl</th><th>Kab/Kota</th><th>UPZ/Lembaga/Masjid</th><th>Jenis</th><th>Jumlah</th><th>Sat</th><th>Aksi</th></tr>
+              </thead>
+              <tbody id="dataBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_WIL = "https://www.emsifa.com/api-wilayah-indonesia/api";
+  let barChart, pieChart;
+
+  function updateSatuan(v) {
+    const l = document.getElementById('labelJumlah');
+    l.innerText = (v === 'Zakat Fitrah (Beras)') ? 'Jumlah Berat (Kg)' : 'Nominal (Rp)';
+    l.style.color = (v === 'Zakat Fitrah (Beras)') ? '#0d6efd' : '#444';
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    google.script.run.withSuccessHandler(res => {
+      if(res) {
+        document.getElementById('login-page').style.display='none';
+        document.getElementById('dashboard-page').style.display='block';
+        initApp();
+        new bootstrap.Modal(document.getElementById('modalOBS')).show();
+      } else alert("Username atau Password Salah!");
+    }).checkLogin(document.getElementById('user').value, document.getElementById('pass').value);
+  });
+
+  function initApp() {
+    document.getElementById('tglInput').valueAsDate = new Date();
+    fetchSholat();
+    google.script.run.withSuccessHandler(list => { 
+      const sel = document.getElementById('wilayah'); 
+      list.forEach(k => sel.add(new Option(k.nama, k.id))); 
+    }).getKabupatenSumsel();
+    google.script.run.withSuccessHandler(updateUI).getDataTable();
+  }
+
+  async function fetchSholat() {
+    try {
+      const r = await fetch('https://api.myquran.com/v2/sholat/jadwal/1103/2026/03/02');
+      const d = await r.json();
+      const j = d.data.jadwal;
+      const h = ['subuh','dzuhur','ashar','maghrib','isya'].map(s => `<div class="sholat-card"><b>${s.toUpperCase()}</b><br><span class="text-success fw-bold">${j[s]}</span></div>`).join('');
+      document.getElementById('sholatArea').innerHTML = h;
+    } catch(e) {}
+  }
+
+  async function loadKec(id) {
+    if(!id) return; toggleLoad(true);
+    const r = await fetch(`${API_WIL}/districts/${id}.json`);
+    const d = await r.json();
+    const s = document.getElementById('kecamatan'); s.innerHTML = '<option value="">Pilih...</option>';
+    d.forEach(x => s.add(new Option(x.name, x.id))); s.disabled = false;
+    toggleLoad(false);
+  }
+
+  async function loadKel(id) {
+    if(!id) return; toggleLoad(true);
+    const r = await fetch(`${API_WIL}/villages/${id}.json`);
+    const d = await r.json();
+    const s = document.getElementById('kelurahan'); s.innerHTML = '<option value="">Pilih...</option>';
+    d.forEach(x => s.add(new Option(x.name, x.id))); s.disabled = false;
+    toggleLoad(false);
+  }
+
+  function toggleLoad(b) { document.getElementById('loading').style.display = b ? 'flex' : 'none'; }
+
+  document.getElementById('zakatForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    toggleLoad(true);
+    const jenis = document.getElementById('jenis').value;
+    const data = {
+      tglInput: document.getElementById('tglInput').value,
+      wilayah: document.getElementById('wilayah').options[document.getElementById('wilayah').selectedIndex].text,
+      kecamatan: document.getElementById('kecamatan').options[document.getElementById('kecamatan').selectedIndex].text,
+      kelurahan: document.getElementById('kelurahan').options[document.getElementById('kelurahan').selectedIndex].text,
+      lembaga: document.getElementById('lembaga').value,
+      jenis: jenis,
+      satuan: (jenis === 'Zakat Fitrah (Beras)') ? 'Kg' : 'Rp',
+      jumlah: document.getElementById('jumlah').value,
+      linkDrive: document.getElementById('linkDrive').value
+    };
+    google.script.run.withSuccessHandler(res => {
+      updateUI(res);
+      document.getElementById('zakatForm').reset();
+      document.getElementById('tglInput').valueAsDate = new Date();
+      updateSatuan('Zakat Fitrah (Uang)');
+      toggleLoad(false);
+      alert("Data Berhasil Tersimpan di Database!");
+    }).prosesForm(data);
+  });
+
+  function updateUI(data) {
+    let h = ''; let mU = {}; let mB = {}; let mJ = {};
+    data.slice().reverse().forEach(r => {
+      const n = parseFloat(r[7]) || 0;
+      const kab = r[2]; const sat = r[8];
+      if(sat === 'Rp') mU[kab] = (mU[kab] || 0) + n; else mB[kab] = (mB[kab] || 0) + n;
+      mJ[r[6]] = (mJ[r[6]] || 0) + n;
+      h += `<tr><td>${r[1]}</td><td>${kab}</td><td>${r[5]}</td><td>${r[6]}</td><td>${n.toLocaleString()}</td><td><span class="badge-satuan">${sat}</span></td><td><a href="${r[9]}" target="_blank" class="btn btn-xs btn-primary py-0 px-1" style="font-size:9px">BUKTI</a></td></tr>`;
+    });
+    document.getElementById('dataBody').innerHTML = h;
+    renderCharts(mU, mB, mJ);
+  }
+
+  function renderCharts(mU, mB, mJ) {
+    const labels = [...new Set([...Object.keys(mU), ...Object.keys(mB)])];
+    if(barChart) barChart.destroy();
+    barChart = new Chart(document.getElementById('chartBar'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Uang (Rp)', data: labels.map(l => mU[l]||0), backgroundColor: '#006432', yAxisID: 'y' },
+          { label: 'Beras (Kg)', data: labels.map(l => mB[l]||0), backgroundColor: '#FFD700', yAxisID: 'y1' }
+        ]
+      },
+      options: { 
+        responsive: true,
+        scales: { 
+            y: { position:'left', title:{display:true, text:'Rupiah (Rp)'} }, 
+            y1: { position:'right', grid:{drawOnChartArea:false}, title:{display:true, text:'Berat (Kg)'} } 
+        } 
+      }
+    });
+    if(pieChart) pieChart.destroy();
+    pieChart = new Chart(document.getElementById('chartPie'), {
+      type: 'pie',
+      data: { labels: Object.keys(mJ), datasets: [{ data: Object.values(mJ), backgroundColor: ['#006432', '#FFD700', '#198754', '#dc3545'] }] },
+      options: { plugins: { title: { display: true, text: 'Komposisi Jenis Dana' } } }
+    });
+  }
+</script>
 </body>
 </html>
